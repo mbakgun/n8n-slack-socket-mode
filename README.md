@@ -1,4 +1,4 @@
-# @mbakgun/n8n-slack-socket-mode
+# @mbakgun/n8n-nodes-slack-socket-mode
 
 <div align="center">
   <img src="https://raw.githubusercontent.com/n8n-io/n8n/master/assets/n8n-logo.png" width="200" alt="n8n logo">
@@ -30,12 +30,12 @@ Follow the [installation guide](https://docs.n8n.io/integrations/community-nodes
 
 Using Bun (recommended):
 ```bash
-bun add @mbakgun/n8n-slack-socket-mode
+bun add @mbakgun/n8n-nodes-slack-socket-mode
 ```
 
 Using npm:
 ```bash
-npm install @mbakgun/n8n-slack-socket-mode
+npm install @mbakgun/n8n-nodes-slack-socket-mode
 ```
 
 After installation, restart n8n and the node will be available in the nodes panel.
