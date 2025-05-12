@@ -1,0 +1,61 @@
+{
+  "name": "@mbakgun/n8n-slack-socket-mode",
+  "version": "1.0.0",
+  "description": "![Banner image](https://user-images.githubusercontent.com/10284570/173569848-c624317f-42b1-45a6-ab09-f0ea3c247648.png)",
+  "keywords": [
+    "n8n-community-node-package"
+  ],
+  "homepage": "https://github.com/mbakgun/n8n-slack-socket-mode#readme",
+  "bugs": {
+    "url": "https://github.com/mbakgun/n8n-slack-socket-mode/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mbakgun/n8n-slack-socket-mode.git"
+  },
+  "license": "MIT",
+  "author": {
+    "name": "Mehmet Burak Akgün"
+  },
+  "type": "commonjs",
+  "main": "dist/index.js",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc && gulp build:icons",
+    "dev": "tsc --watch",
+    "format": "prettier nodes credentials --write",
+    "lint": "eslint nodes credentials package.json",
+    "lintfix": "eslint nodes credentials package.json --fix",
+    "prepublishOnly": "bun run build && bun run lint -c .eslintrc.prepublish.js nodes credentials package.json"
+  },
+  "devDependencies": {
+    "@typescript-eslint/parser": "^7.18.0",
+    "eslint": "^8.57.1",
+    "eslint-plugin-n8n-nodes-base": "^1.16.3",
+    "gulp": "^4.0.2",
+    "prettier": "^3.5.3",
+    "typescript": "^5.8.3"
+  },
+  "peerDependencies": {
+    "n8n-workflow": "^1.82.0"
+  },
+  "engines": {
+    "node": ">=18.10",
+    "bun": ">=1.0.0"
+  },
+  "packageManager": "bun@1.2.13",
+  "n8n": {
+    "n8nNodesApiVersion": 1,
+    "credentials": [
+      "dist/credentials/SlackSocketCredentialsApi.credentials.js"
+    ],
+    "nodes": [
+      "dist/nodes/SlackSocketTrigger/SlackSocketTrigger.node.js"
+    ]
+  },
+  "dependencies": {
+    "@slack/bolt": "4.3.0"
+  }
+}
