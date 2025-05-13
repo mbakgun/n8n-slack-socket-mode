@@ -1,7 +1,7 @@
 {
   "name": "@mbakgun/n8n-nodes-slack-socket-mode",
   "version": "1.0.3",
-  "description": "UNOFFICIAL Slack Socket Mode Node for n8n",
+  "description": "Slack Socket Mode Node for n8n that connects your internal network n8n applications with Slack through socket mode",
   "keywords": [
     "n8n-community-node-package"
   ],
