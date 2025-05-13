@@ -14,6 +14,20 @@ interface SlackCredential {
 	signingSecret: string;
 }
 
+interface SlackBlockActionBody {
+	[key: string]: any;
+	trigger_id?: string;
+	message_ts?: string;
+	container?: {
+		message_ts?: string;
+		channel_id?: string;
+	};
+	actions?: Array<{
+		action_id?: string;
+		action_ts?: string;
+	}>;
+}
+
 export class SlackSocketTrigger implements INodeType {
 	description: INodeTypeDescription = {
 		displayName: 'Slack Socket Mode Trigger',
@@ -112,8 +126,7 @@ export class SlackSocketTrigger implements INodeType {
 			socketMode: true,
 		});
 
-		const processedActions = new Map<string, number>();
-		const TRACKING_EXPIRATION_MS = 30000;
+		const processedIds = new Set<string>();
 
 		const process = async (root: any) => {
 			const { body, payload, context, event } = root;
@@ -126,28 +139,29 @@ export class SlackSocketTrigger implements INodeType {
 				if (filter === 'message' && regExp) {
 					app.message(regExp, process);
 				} else if (filter === 'block_actions') {
-					app.action(/.*/, async ({ ack, body, action }) => {
-						try {
-							await ack();
+					app.action(/.*/, async ({ ack, body, payload }) => {
+						await ack();
 
-							const bodyObj = body as any;
-							const actionKey = `${bodyObj.message_ts || ''}:${bodyObj.container?.message_ts || ''}:${new Date().getTime()}`;
+						const blockActionBody = body as SlackBlockActionBody;
+						const messageTs = blockActionBody.container?.message_ts || '';
+						const channelId = blockActionBody.container?.channel_id || '';
+						const actionId = blockActionBody.actions?.[0]?.action_id || '';
+						const actionTs = blockActionBody.actions?.[0]?.action_ts || '';
 
-							if (processedActions.has(actionKey)) {
-								return;
-							}
+						const actionKey = `${messageTs}:${channelId}:${actionId}:${actionTs}`;
 
-							processedActions.set(actionKey, Date.now());
-
-							setTimeout(() => {
-								processedActions.delete(actionKey);
-							}, TRACKING_EXPIRATION_MS);
-
-							const result: IDataObject = { body, payload: action, context: null, event: body };
-							this.emit([this.helpers.returnJsonArray(result)]);
-						} catch (error) {
-							this.logger.error('Error processing block action:', error);
+						if (processedIds.has(actionKey)) {
+							return;
 						}
+
+						processedIds.add(actionKey);
+
+						setTimeout(() => {
+							processedIds.delete(actionKey);
+						}, 20000);
+
+						let result: IDataObject = { body, payload, context: null, event: body };
+						this.emit([this.helpers.returnJsonArray(result)]);
 					});
 				} else {
 					app.event(filter, process);
