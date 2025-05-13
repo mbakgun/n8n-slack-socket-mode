@@ -112,6 +112,9 @@ export class SlackSocketTrigger implements INodeType {
 			socketMode: true,
 		});
 
+		const processedActions = new Map<string, number>();
+		const TRACKING_EXPIRATION_MS = 30000;
+
 		const process = async (root: any) => {
 			const { body, payload, context, event } = root;
 			let result: IDataObject = { body, payload, context, event };
@@ -123,7 +126,29 @@ export class SlackSocketTrigger implements INodeType {
 				if (filter === 'message' && regExp) {
 					app.message(regExp, process);
 				} else if (filter === 'block_actions') {
-					app.action(/.*/, process);
+					app.action(/.*/, async ({ ack, body, action }) => {
+						try {
+							await ack();
+
+							const bodyObj = body as any;
+							const actionKey = `${bodyObj.message_ts || ''}:${bodyObj.container?.message_ts || ''}:${new Date().getTime()}`;
+
+							if (processedActions.has(actionKey)) {
+								return;
+							}
+
+							processedActions.set(actionKey, Date.now());
+
+							setTimeout(() => {
+								processedActions.delete(actionKey);
+							}, TRACKING_EXPIRATION_MS);
+
+							const result: IDataObject = { body, payload: action, context: null, event: body };
+							this.emit([this.helpers.returnJsonArray(result)]);
+						} catch (error) {
+							this.logger.error('Error processing block action:', error);
+						}
+					});
 				} else {
 					app.event(filter, process);
 				}
