@@ -94,13 +94,8 @@ These values can be found in your Slack App configuration.
 The Slack Socket Trigger node can be configured with the following options:
 
 - **Trigger On**: Select which Slack events should trigger your workflow:
-  - Bot / App Mention
-  - Button Interaction
-  - New Message Posted to Channel
-  - New Public Channel Created
-  - New User
-  - Reaction Added
-  - Reaction Removed
+  - All Slack events are now supported (app_mention, message, reaction events, channel events, etc.)
+  - See the Supported Events section below for a complete list of available events
 
 - **Regex Pattern**: Optional regular expression to match against incoming Slack messages
 - **Regex Flags**: Flags for the regular expression (e.g., `g` for global, `i` for case-insensitive)
@@ -290,7 +285,7 @@ This workflow allows you to create a Slack bot that responds to mentions with da
 
 ## Version History
 
-- **1.1.0**: Added support for all Slack events
+- **1.2.0**: Added support for all Slack events
   - Updated to include all events from the Slack Events API
   - Improved event descriptions and documentation
 - **1.0.0**: Initial release - Project initialized with Socket Mode support for Slack events
