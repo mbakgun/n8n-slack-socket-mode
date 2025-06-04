@@ -1,6 +1,6 @@
 {
   "name": "@mbakgun/n8n-nodes-slack-socket-mode",
-  "version": "1.2.1",
+  "version": "1.2.2",
   "description": "Slack Socket Mode Node for n8n that allows you to use +100 Slack events in your n8n instance with proxy mode",
   "keywords": [
     "n8n-community-node-package",
@@ -31,7 +31,7 @@
     "dist"
   ],
   "scripts": {
-    "build": "tsc && gulp build:icons",
+    "build": "rm -rf dist && tsc && gulp build:icons",
     "dev": "tsc --watch",
     "format": "prettier nodes credentials --write",
     "lint": "eslint nodes credentials package.json",
@@ -64,6 +64,6 @@
     ]
   },
   "dependencies": {
-    "@slack/bolt": "4.3.0"
+    "@slack/bolt": "4.4.0"
   }
 }
