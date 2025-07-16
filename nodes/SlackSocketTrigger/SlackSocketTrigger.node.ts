@@ -698,6 +698,36 @@ export class SlackSocketTrigger implements INodeType {
 						app.message(regExp, process);
 					} else if (filter === 'block_actions') {
 						app.action(/.*/, process);
+					} else if (filter.startsWith('message.')) {
+						// Handle message subtypes by filtering on channel_type
+						const channelType = filter.replace('message.', '');
+
+						// Map the filter names to actual channel_type values
+						const channelTypeMap: { [key: string]: string } = {
+							'channels': 'channel',
+							'groups': 'group',
+							'im': 'im',
+							'mpim': 'mpim',
+							'app_home': 'app_home'
+						};
+
+						const actualChannelType = channelTypeMap[channelType] || channelType;
+
+						if (regExp) {
+							app.message(regExp, async (args: any) => {
+								// Filter by channel_type
+								if (args.event.channel_type === actualChannelType) {
+									await process(args);
+								}
+							});
+						} else {
+							app.message(async (args: any) => {
+								// Filter by channel_type
+								if (args.event.channel_type === actualChannelType) {
+									await process(args);
+								}
+							});
+						}
 					} else {
 						app.event(filter, process);
 					}
