@@ -64,6 +64,7 @@
     ]
   },
   "dependencies": {
-    "@slack/bolt": "4.4.0"
+    "@slack/bolt": "4.4.0",
+    "http-proxy-agent": "^7.0.2"
   }
 }
