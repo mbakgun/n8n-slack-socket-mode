@@ -8,6 +8,7 @@ import {
 	NodeOperationError
 } from 'n8n-workflow';
 import { App } from '@slack/bolt'
+import { HttpsProxyAgent } from 'https-proxy-agent'
 
 interface SlackCredential {
 	botToken: string;
@@ -673,15 +674,17 @@ export class SlackSocketTrigger implements INodeType {
 		if (!credentials.botToken || !credentials.appToken || !credentials.signingSecret) {
 			throw new NodeOperationError(this.getNode(), 'Missing required Slack Socket credentials');
 		}
-
+		const proxyUrl = process.env.HTTP_PROXY || process.env.HTTPS_PROXY;
+		const agent = proxyUrl ? new HttpsProxyAgent(proxyUrl) : undefined;
 		const app = new App({
 			token: credentials.botToken,
 			signingSecret: credentials.signingSecret,
 			appToken: credentials.appToken,
 			socketMode: true,
+			clientOptions: { agent },
 		});
 
-		const process = async (root: any) => {
+		const socketProcess = async (root: any) => {
 			try {
 				const { body, payload, context, event } = root;
 				let result: IDataObject = { body, payload, context, event };
@@ -695,9 +698,9 @@ export class SlackSocketTrigger implements INodeType {
 			filters.forEach((filter) => {
 				try {
 					if (filter === 'message' && regExp) {
-						app.message(regExp, process);
+						app.message(regExp, socketProcess);
 					} else if (filter === 'block_actions') {
-						app.action(/.*/, process);
+						app.action(/.*/, socketProcess);
 					} else if (filter.startsWith('message.')) {
 						// Handle message subtypes by filtering on channel_type
 						const channelType = filter.replace('message.', '');
@@ -717,19 +720,19 @@ export class SlackSocketTrigger implements INodeType {
 							app.message(regExp, async (args: any) => {
 								// Filter by channel_type
 								if (args.event.channel_type === actualChannelType) {
-									await process(args);
+									await socketProcess(args);
 								}
 							});
 						} else {
 							app.message(async (args: any) => {
 								// Filter by channel_type
 								if (args.event.channel_type === actualChannelType) {
-									await process(args);
+									await socketProcess(args);
 								}
 							});
 						}
 					} else {
-						app.event(filter, process);
+						app.event(filter, socketProcess);
 					}
 				} catch (error) {
 					this.logger.error('Error setting up event listener for Slack Socket: ' + filter + ': ' + error);

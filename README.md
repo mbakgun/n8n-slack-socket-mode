@@ -100,6 +100,14 @@ The Slack Socket Trigger node can be configured with the following options:
 - **Regex Pattern**: Optional regular expression to match against incoming Slack messages
 - **Regex Flags**: Flags for the regular expression (e.g., `g` for global, `i` for case-insensitive)
 
+This node supports using an HTTP or HTTPS proxy by reading the following environment variables:
+
+```bash
+export HTTP_PROXY=http://proxy.example.com:3128
+# or
+export HTTPS_PROXY=http://proxy.example.com:3128
+```
+
 ## Supported Events
 
 The node currently supports the following Slack events:
