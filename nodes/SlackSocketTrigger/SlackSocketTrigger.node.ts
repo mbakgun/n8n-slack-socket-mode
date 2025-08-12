@@ -1,5 +1,7 @@
 import {
 	IDataObject,
+	ILoadOptionsFunctions,
+	INodeListSearchResult,
 	INodeType,
 	INodeTypeDescription,
 	ITriggerFunctions,
@@ -655,13 +657,94 @@ export class SlackSocketTrigger implements INodeType {
 				description:
 					'Flags for the regular expression (e.g., g for global, i for case-insensitive)',
 			},
+			{
+				displayName: 'Channel to Watch',
+				name: 'channelToWatch',
+				type: 'resourceLocator',
+				default: { mode: 'list', value: '' },
+				placeholder: 'Select a channel',
+				description: 'Select a channel to filter events. If specified, only events from this channel will trigger the workflow.',
+				modes: [
+					{
+						displayName: 'From List',
+						name: 'list',
+						type: 'list',
+						placeholder: 'Select a channel',
+						typeOptions: {
+							searchListMethod: 'channelSearch',
+							searchable: true,
+						},
+					},
+					{
+						displayName: 'By ID',
+						name: 'id',
+						type: 'string',
+						placeholder: 'C1234567890',
+						validation: [
+							{
+								type: 'regex',
+								properties: {
+									regex: '^[C|G|D][A-Z0-9]{8,}$',
+									errorMessage: 'Not a valid Slack channel ID',
+								},
+							},
+						],
+					},
+				],
+			},
 		],
+	};
+
+	methods = {
+		listSearch: {
+			async channelSearch(this: ILoadOptionsFunctions): Promise<INodeListSearchResult> {
+				const credentials = await this.getCredentials('slackSocketCredentialsApi') as SlackCredential;
+				
+				if (!credentials.botToken) {
+					throw new NodeOperationError(this.getNode(), 'Bot token is required to load channels');
+				}
+
+				const app = new App({
+					token: credentials.botToken,
+					signingSecret: credentials.signingSecret,
+					appToken: credentials.appToken,
+				});
+
+				try {
+					const result = await app.client.conversations.list({
+						types: 'public_channel,private_channel',
+						exclude_archived: true,
+					});
+
+					const results = [];
+
+					if (result.channels) {
+						for (const channel of result.channels) {
+							if (channel.name && channel.id) {
+								results.push({
+									name: `#${channel.name}`,
+									value: channel.id,
+									description: channel.purpose?.value || '',
+								});
+							}
+						}
+					}
+
+					return { results };
+				} catch (error) {
+					throw new NodeOperationError(this.getNode(), `Failed to load channels: ${error}`);
+				}
+			},
+		},
 	};
 
 	async trigger(this: ITriggerFunctions): Promise<ITriggerResponse> {
 		const filters = this.getNodeParameter('trigger', []) as string[];
 		const pattern = this.getNodeParameter('regexPattern') as string;
 		const flags = this.getNodeParameter('regexFlags') as string;
+		const channelToWatch = this.getNodeParameter('channelToWatch') as { mode: string; value: string };
+		const channelId = channelToWatch.value;
+		
 		const regExp = pattern.length > 0 ? new RegExp(pattern, flags) : undefined;
 
 		let credentials: SlackCredential;
@@ -687,6 +770,12 @@ export class SlackSocketTrigger implements INodeType {
 		const socketProcess = async (root: any) => {
 			try {
 				const { body, payload, context, event } = root;
+				
+				// Filter by channel ID if specified
+				if (channelId && event && event.channel && event.channel !== channelId) {
+					return; // Skip this event if it doesn't match the specified channel
+				}
+				
 				let result: IDataObject = { body, payload, context, event };
 				this.emit([this.helpers.returnJsonArray(result)]);
 			} catch (error) {
