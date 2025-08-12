@@ -292,8 +292,38 @@ This workflow allows you to create a Slack bot that responds to mentions with da
 - [Slack Events API Documentation](https://api.slack.com/events)
 - [Bun Documentation](https://bun.sh/docs)
 
+## Contributors
+
+We appreciate all contributions to this project! 🎉
+
+### How to Contribute
+
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Make your changes
+4. Run tests and ensure build passes (`bun run build`)
+5. Commit your changes (`git commit -m 'Add some amazing feature'`)
+6. Push to the branch (`git push origin feature/amazing-feature`)
+7. Open a Pull Request
+
+Special thanks to all contributors who help improve this project!
+
 ## Version History
 
+- **1.3.0**: Channel filtering feature by **[@tongshengng](https://github.com/tongshengng)**
+  - Added "Channel to watch" field similar to official Slack trigger node
+  - Implemented optional channel ID parameter to filter incoming Slack events
+  - Added searchable dropdown with channel selection via Slack API
+  - Improved event targeting by filtering events from specific channels only
+  - Added channel ID format validation for manual entry
+- **1.2.5**: Added proxy support by **[@minimorph223](https://github.com/minimorph223)**
+  - Added `http-proxy-agent` dependency for HTTP/HTTPS proxy support
+  - Enhanced connectivity options for enterprise environments
+- **1.2.3**: Enhanced message filtering by **[@macchiang](https://github.com/macchiang)**
+  - Fixed invalid `message.im` event type with proper channel_type filtering
+  - Added support for filtering Slack messages by channel type (channels, groups, im, mpim, app_home)
+  - Improved message filtering capabilities using Slack Bolt framework best practices
+  - Resolved TypeScript typing issues
 - **1.2.0**: Added support for all Slack events
   - Updated to include all events from the Slack Events API
   - Improved event descriptions and documentation
