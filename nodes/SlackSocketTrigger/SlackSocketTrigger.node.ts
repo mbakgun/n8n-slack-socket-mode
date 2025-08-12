@@ -655,6 +655,15 @@ export class SlackSocketTrigger implements INodeType {
 				description:
 					'Flags for the regular expression (e.g., g for global, i for case-insensitive)',
 			},
+			{
+				displayName: 'Channel ID',
+				name: 'channelId',
+				type: 'string',
+				default: '',
+				placeholder: 'C1234567890',
+				description:
+					'Optional channel ID to filter events. If specified, only events from this channel will trigger the workflow.',
+			},
 		],
 	};
 
@@ -662,6 +671,7 @@ export class SlackSocketTrigger implements INodeType {
 		const filters = this.getNodeParameter('trigger', []) as string[];
 		const pattern = this.getNodeParameter('regexPattern') as string;
 		const flags = this.getNodeParameter('regexFlags') as string;
+		const channelId = this.getNodeParameter('channelId') as string;
 		const regExp = pattern.length > 0 ? new RegExp(pattern, flags) : undefined;
 
 		let credentials: SlackCredential;
@@ -687,6 +697,12 @@ export class SlackSocketTrigger implements INodeType {
 		const socketProcess = async (root: any) => {
 			try {
 				const { body, payload, context, event } = root;
+				
+				// Filter by channel ID if specified
+				if (channelId && event && event.channel && event.channel !== channelId) {
+					return; // Skip this event if it doesn't match the specified channel
+				}
+				
 				let result: IDataObject = { body, payload, context, event };
 				this.emit([this.helpers.returnJsonArray(result)]);
 			} catch (error) {
