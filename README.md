@@ -310,6 +310,9 @@ Special thanks to all contributors who help improve this project!
 
 ## Version History
 
+- **1.3.1**: Enhanced channel filtering for all event types
+  - Fixed channel filtering for events like `reaction_added`, `pin_added`, `file_shared`, etc.
+  - Added comprehensive channel ID extraction from multiple event properties (`event.channel`, `event.item.channel`, `event.item.channel_id`, `event.file.channels`)
 - **1.3.0**: Channel filtering feature by **[@tongshengng](https://github.com/tongshengng)**
   - Added "Channel to watch" field similar to official Slack trigger node
   - Implemented optional channel ID parameter to filter incoming Slack events

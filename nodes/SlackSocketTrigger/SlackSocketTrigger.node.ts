@@ -699,7 +699,7 @@ export class SlackSocketTrigger implements INodeType {
 		listSearch: {
 			async channelSearch(this: ILoadOptionsFunctions): Promise<INodeListSearchResult> {
 				const credentials = await this.getCredentials('slackSocketCredentialsApi') as SlackCredential;
-				
+
 				if (!credentials.botToken) {
 					throw new NodeOperationError(this.getNode(), 'Bot token is required to load channels');
 				}
@@ -744,7 +744,7 @@ export class SlackSocketTrigger implements INodeType {
 		const flags = this.getNodeParameter('regexFlags') as string;
 		const channelToWatch = this.getNodeParameter('channelToWatch') as { mode: string; value: string };
 		const channelId = channelToWatch.value;
-		
+
 		const regExp = pattern.length > 0 ? new RegExp(pattern, flags) : undefined;
 
 		let credentials: SlackCredential;
@@ -767,15 +767,40 @@ export class SlackSocketTrigger implements INodeType {
 			clientOptions: { agent },
 		});
 
+		const getEventChannelId = (event: any): string | null => {
+			if (!event) return null;
+
+			if (event.channel) {
+				return event.channel;
+			}
+
+			if (event.item?.channel) {
+				return event.item.channel;
+			}
+
+			if (event.item?.channel_id) {
+				return event.item.channel_id;
+			}
+
+			if (event.file?.channels && Array.isArray(event.file.channels) && event.file.channels.length > 0) {
+				return event.file.channels[0];
+			}
+
+			return null;
+		};
+
 		const socketProcess = async (root: any) => {
 			try {
 				const { body, payload, context, event } = root;
-				
+
 				// Filter by channel ID if specified
-				if (channelId && event && event.channel && event.channel !== channelId) {
-					return; // Skip this event if it doesn't match the specified channel
+				if (channelId && event) {
+					const eventChannelId = getEventChannelId(event);
+					if (eventChannelId && eventChannelId !== channelId) {
+						return; // Skip this event if it doesn't match the specified channel
+					}
 				}
-				
+
 				let result: IDataObject = { body, payload, context, event };
 				this.emit([this.helpers.returnJsonArray(result)]);
 			} catch (error) {

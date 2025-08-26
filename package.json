@@ -1,6 +1,6 @@
 {
   "name": "@mbakgun/n8n-nodes-slack-socket-mode",
-  "version": "1.3.0",
+  "version": "1.3.1",
   "description": "Slack Socket Mode Node for n8n that allows you to use +100 Slack events in your n8n instance with proxy mode",
   "keywords": [
     "n8n-community-node-package",
