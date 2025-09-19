@@ -310,6 +310,11 @@ Special thanks to all contributors who help improve this project!
 
 ## Version History
 
+- **1.3.2**: Fixed block actions acknowledgement by **[@keenlim](https://github.com/keenlim)**
+  - Added proper acknowledgement for block actions interactions
+  - Fixed socket to Slack communication for button interactions
+
+
 - **1.3.1**: Enhanced channel filtering for all event types
   - Fixed channel filtering for events like `reaction_added`, `pin_added`, `file_shared`, etc.
   - Added comprehensive channel ID extraction from multiple event properties (`event.channel`, `event.item.channel`, `event.item.channel_id`, `event.file.channels`)
