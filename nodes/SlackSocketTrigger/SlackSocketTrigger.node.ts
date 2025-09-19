@@ -814,7 +814,11 @@ export class SlackSocketTrigger implements INodeType {
 					if (filter === 'message' && regExp) {
 						app.message(regExp, socketProcess);
 					} else if (filter === 'block_actions') {
-						app.action(/.*/, socketProcess);
+						app.action(/.*/, async (args: any) => {
+							const { ack } = args;
+							await ack();
+							await socketProcess(args);
+						});;
 					} else if (filter.startsWith('message.')) {
 						// Handle message subtypes by filtering on channel_type
 						const channelType = filter.replace('message.', '');
