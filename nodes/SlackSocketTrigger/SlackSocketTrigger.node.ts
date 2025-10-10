@@ -810,16 +810,30 @@ export class SlackSocketTrigger implements INodeType {
 
 		const setupEventListeners = () => {
 			filters.forEach((filter) => {
-				try {
-					if (filter === 'message' && regExp) {
-						app.message(regExp, socketProcess);
-					} else if (filter === 'block_actions') {
-						app.action(/.*/, async (args: any) => {
-							const { ack } = args;
-							await ack();
-							await socketProcess(args);
-						});;
-					} else if (filter.startsWith('message.')) {
+                                try {
+                                        if (filter === 'message') {
+                                                app.event('message', async (args: any) => {
+                                                        const { event } = args;
+                                                        if (!event) {
+                                                                return;
+                                                        }
+
+                                                        if (regExp) {
+                                                                const text = typeof event.text === 'string' ? event.text : '';
+                                                                regExp.lastIndex = 0;
+                                                                if (!text || !regExp.test(text)) {
+                                                                        return;
+                                                                }
+                                                        }
+                                                        await socketProcess(args);
+                                                });
+                                        } else if (filter === 'block_actions') {
+                                                app.action(/.*/, async (args: any) => {
+                                                        const { ack } = args;
+                                                        await ack();
+                                                        await socketProcess(args);
+                                                });;
+                                        } else if (filter.startsWith('message.')) {
 						// Handle message subtypes by filtering on channel_type
 						const channelType = filter.replace('message.', '');
 
@@ -834,24 +848,25 @@ export class SlackSocketTrigger implements INodeType {
 
 						const actualChannelType = channelTypeMap[channelType] || channelType;
 
-						if (regExp) {
-							app.message(regExp, async (args: any) => {
-								// Filter by channel_type
-								if (args.event.channel_type === actualChannelType) {
-									await socketProcess(args);
-								}
-							});
-						} else {
-							app.message(async (args: any) => {
-								// Filter by channel_type
-								if (args.event.channel_type === actualChannelType) {
-									await socketProcess(args);
-								}
-							});
-						}
-					} else {
-						app.event(filter, socketProcess);
-					}
+                                                app.event('message', async (args: any) => {
+                                                        const { event } = args;
+                                                        if (!event || event.channel_type !== actualChannelType) {
+                                                                return;
+                                                        }
+
+                                                        if (regExp) {
+                                                                const text = typeof event.text === 'string' ? event.text : '';
+                                                                regExp.lastIndex = 0;
+                                                                if (!text || !regExp.test(text)) {
+                                                                        return;
+                                                                }
+                                                        }
+
+                                                        await socketProcess(args);
+                                                });
+                                        } else {
+                                                app.event(filter, socketProcess);
+                                        }
 				} catch (error) {
 					this.logger.error('Error setting up event listener for Slack Socket: ' + filter + ': ' + error);
 				}
