@@ -310,6 +310,12 @@ Special thanks to all contributors who help improve this project!
 
 ## Version History
 
+- **1.3.3**: Improved message event handling
+  - Refactored message event listeners to use app.event() instead of app.message()
+  - Fixed regex state management by resetting lastIndex for global regex flags
+  - Enhanced null safety with explicit event and text validation
+  - Reduced code duplication in message subtype handling
+  - Improved early return pattern for better code readability
 - **1.3.2**: Fixed block actions acknowledgement by **[@keenlim](https://github.com/keenlim)**
   - Added proper acknowledgement for block actions interactions
   - Fixed socket to Slack communication for button interactions
