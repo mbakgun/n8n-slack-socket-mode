@@ -812,8 +812,8 @@ export class SlackSocketTrigger implements INodeType {
 			filters.forEach((filter) => {
                                 try {
                                         if (filter === 'message') {
-                                                app.event('message', async (args: any) => {
-                                                        const { event } = args;
+                                                const handleMessageEvent = async (args: any) => {
+                                                        const event = args?.event;
                                                         if (!event) {
                                                                 return;
                                                         }
@@ -825,8 +825,11 @@ export class SlackSocketTrigger implements INodeType {
                                                                         return;
                                                                 }
                                                         }
+
                                                         await socketProcess(args);
-                                                });
+                                                };
+
+                                                app.event('message', handleMessageEvent);
                                         } else if (filter === 'block_actions') {
                                                 app.action(/.*/, async (args: any) => {
                                                         const { ack } = args;
@@ -848,8 +851,8 @@ export class SlackSocketTrigger implements INodeType {
 
 						const actualChannelType = channelTypeMap[channelType] || channelType;
 
-                                                app.event('message', async (args: any) => {
-                                                        const { event } = args;
+                                                const handleMessageSubtypeEvent = async (args: any) => {
+                                                        const event = args?.event;
                                                         if (!event || event.channel_type !== actualChannelType) {
                                                                 return;
                                                         }
@@ -863,7 +866,9 @@ export class SlackSocketTrigger implements INodeType {
                                                         }
 
                                                         await socketProcess(args);
-                                                });
+                                                };
+
+                                                app.event('message', handleMessageSubtypeEvent);
                                         } else {
                                                 app.event(filter, socketProcess);
                                         }

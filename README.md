@@ -310,6 +310,12 @@ Special thanks to all contributors who help improve this project!
 
 ## Version History
 
+- **1.3.5**: Enhanced message event handler architecture for better app event handling
+  - Refactored message event handlers into named functions (handleMessageEvent, handleMessageSubtypeEvent)
+  - Fixed event capture and processing by separating handler definition from registration
+  - Improved app.event() listener registration to properly catch all message events
+  - Enhanced code maintainability and debugging with named function handlers
+  - Better event handling reliability for message and message subtype events
 - **1.3.3**: Improved message event handling
   - Refactored message event listeners to use app.event() instead of app.message()
   - Fixed regex state management by resetting lastIndex for global regex flags
