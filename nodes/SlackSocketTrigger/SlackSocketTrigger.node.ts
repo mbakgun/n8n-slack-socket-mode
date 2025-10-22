@@ -869,13 +869,26 @@ export class SlackSocketTrigger implements INodeType {
                                                 };
 
                                                 app.event('message', handleMessageSubtypeEvent);
+                                        } else if (filter === 'reaction_added' || filter === 'reaction_removed') {
+                                                app.event(filter, async (args: any) => {
+                                                        const reaction = args?.event?.reaction;
+                                                        if (regExp) {
+                                                                const reactionName = typeof reaction === 'string' ? reaction : '';
+                                                                regExp.lastIndex = 0;
+                                                                if (!reactionName || !regExp.test(reactionName)) {
+                                                                        return;
+                                                                }
+                                                        }
+
+                                                        await socketProcess(args);
+                                                });
                                         } else {
                                                 app.event(filter, socketProcess);
                                         }
-				} catch (error) {
-					this.logger.error('Error setting up event listener for Slack Socket: ' + filter + ': ' + error);
-				}
-			});
+                                } catch (error) {
+                                        this.logger.error('Error setting up event listener for Slack Socket: ' + filter + ': ' + error);
+                                }
+                        });
 		};
 
 		setupEventListeners();

@@ -310,6 +310,11 @@ Special thanks to all contributors who help improve this project!
 
 ## Version History
 
+- **1.3.6**: Production release with enhanced event handler architecture
+  - Stable release of message event handler improvements from 1.3.5
+  - Production-ready named function handlers for all message events
+  - Verified event capture and processing reliability
+  - Ready for enterprise deployments with improved debugging capabilities
 - **1.3.5**: Enhanced message event handler architecture for better app event handling
   - Refactored message event handlers into named functions (handleMessageEvent, handleMessageSubtypeEvent)
   - Fixed event capture and processing by separating handler definition from registration
