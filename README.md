@@ -99,7 +99,8 @@ The Slack Socket Trigger node can be configured with the following options:
 
 - **Regex Pattern**: Optional regular expression to match against incoming Slack messages
 - **Regex Flags**: Flags for the regular expression (e.g., `g` for global, `i` for case-insensitive)
-- **Channel ID**: Optional channel ID to filter events (e.g., `C1234567890`). If specified, only events from this channel will trigger the workflow
+- **Channels to Watch**: Optional list of channels to filter events. Click **Add Channel** to add channels. Each channel can be selected from the dropdown or entered by ID (e.g., `C1234567890`, `G1234567890`)
+- **Legacy Channel to Watch**: Preserved single-channel selector for workflows created before version 1.4.2
 
 This node supports using an HTTP or HTTPS proxy by reading the following environment variables:
 
@@ -310,6 +311,9 @@ Special thanks to all contributors who help improve this project!
 
 ## Version History
 
+- **1.4.2**: Fixed multi-channel selector implementation
+  - Each channel entry now properly supports both dropdown selection and manual ID input
+  - Maintained backward compatibility with legacy single-channel selector
 - **1.3.6**: Production release with enhanced event handler architecture
   - Stable release of message event handler improvements from 1.3.5
   - Production-ready named function handlers for all message events

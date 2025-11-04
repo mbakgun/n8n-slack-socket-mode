@@ -23,7 +23,7 @@ export class SlackSocketTrigger implements INodeType {
 		displayName: 'Slack Socket Mode Trigger',
 		name: 'slackSocketTrigger',
 		group: ['trigger'],
-		version: 1,
+		version: 2,
 		description: 'Triggers workflow when a Slack message matches a regex pattern via Socket Mode',
 		defaults: {
 			name: 'Slack Socket Mode Trigger',
@@ -658,12 +658,67 @@ export class SlackSocketTrigger implements INodeType {
 					'Flags for the regular expression (e.g., g for global, i for case-insensitive)',
 			},
 			{
-				displayName: 'Channel to Watch',
+				displayName: 'Channels to Watch',
+				name: 'channelsToWatch',
+				type: 'fixedCollection',
+				default: {},
+				placeholder: 'Add Channel',
+				description: 'Select channels to filter events. If specified, only events from these channels will trigger the workflow. To enter IDs manually, add each channel separately (e.g., C1234567890, G1234567890).',
+				typeOptions: {
+					multipleValues: true,
+					multipleValueButtonText: 'Add Channel',
+				},
+				options: [
+					{
+						name: 'channelValues',
+						displayName: 'Channel',
+						values: [
+							{
+								displayName: 'Channel',
+								name: 'channel',
+								type: 'resourceLocator',
+								default: { mode: 'list', value: '' },
+								placeholder: 'Select a channel',
+								description: 'Channel to watch for events',
+								modes: [
+									{
+										displayName: 'From List',
+										name: 'list',
+										type: 'list',
+										placeholder: 'Select a channel',
+										typeOptions: {
+											searchListMethod: 'channelSearch',
+											searchable: true,
+										},
+									},
+									{
+										displayName: 'By ID',
+										name: 'id',
+										type: 'string',
+										placeholder: 'C1234567890',
+										validation: [
+											{
+												type: 'regex',
+												properties: {
+													regex: '^[C|G|D][A-Z0-9]{8,}$',
+													errorMessage: 'Not a valid Slack channel ID',
+												},
+											},
+										],
+									},
+								],
+							},
+						],
+					},
+				],
+			},
+			{
+				displayName: 'Legacy Channel to Watch',
 				name: 'channelToWatch',
 				type: 'resourceLocator',
 				default: { mode: 'list', value: '' },
 				placeholder: 'Select a channel',
-				description: 'Select a channel to filter events. If specified, only events from this channel will trigger the workflow.',
+				description: 'Legacy single-channel selector retained for workflows created before version 1.4.0',
 				modes: [
 					{
 						displayName: 'From List',
@@ -742,8 +797,28 @@ export class SlackSocketTrigger implements INodeType {
 		const filters = this.getNodeParameter('trigger', []) as string[];
 		const pattern = this.getNodeParameter('regexPattern') as string;
 		const flags = this.getNodeParameter('regexFlags') as string;
-		const channelToWatch = this.getNodeParameter('channelToWatch') as { mode: string; value: string };
-		const channelId = channelToWatch.value;
+		const channelsToWatch = this.getNodeParameter('channelsToWatch', {}) as {
+			channelValues?: Array<{ channel?: { mode?: string; value?: string } }>;
+		};
+		const legacyChannelToWatch = this.getNodeParameter('channelToWatch', null) as
+			| { mode?: string; value?: string }
+			| null;
+
+		const channelIds: string[] = [];
+
+		if (channelsToWatch?.channelValues && Array.isArray(channelsToWatch.channelValues)) {
+			for (const item of channelsToWatch.channelValues) {
+				if (item?.channel?.value && typeof item.channel.value === 'string') {
+					channelIds.push(item.channel.value);
+				}
+			}
+		}
+
+		if (legacyChannelToWatch?.value && typeof legacyChannelToWatch.value === 'string' && legacyChannelToWatch.value.length > 0) {
+			channelIds.push(legacyChannelToWatch.value);
+		}
+
+		const uniqueChannelIds = Array.from(new Set(channelIds));
 
 		const regExp = pattern.length > 0 ? new RegExp(pattern, flags) : undefined;
 
@@ -793,11 +868,10 @@ export class SlackSocketTrigger implements INodeType {
 			try {
 				const { body, payload, context, event } = root;
 
-				// Filter by channel ID if specified
-				if (channelId && event) {
+				if (uniqueChannelIds.length > 0 && event) {
 					const eventChannelId = getEventChannelId(event);
-					if (eventChannelId && eventChannelId !== channelId) {
-						return; // Skip this event if it doesn't match the specified channel
+					if (eventChannelId && !uniqueChannelIds.includes(eventChannelId)) {
+						return;
 					}
 				}
 
@@ -810,33 +884,33 @@ export class SlackSocketTrigger implements INodeType {
 
 		const setupEventListeners = () => {
 			filters.forEach((filter) => {
-                                try {
-                                        if (filter === 'message') {
-                                                const handleMessageEvent = async (args: any) => {
-                                                        const event = args?.event;
-                                                        if (!event) {
-                                                                return;
-                                                        }
+				try {
+					if (filter === 'message') {
+						const handleMessageEvent = async (args: any) => {
+							const event = args?.event;
+							if (!event) {
+								return;
+							}
 
-                                                        if (regExp) {
-                                                                const text = typeof event.text === 'string' ? event.text : '';
-                                                                regExp.lastIndex = 0;
-                                                                if (!text || !regExp.test(text)) {
-                                                                        return;
-                                                                }
-                                                        }
+							if (regExp) {
+								const text = typeof event.text === 'string' ? event.text : '';
+								regExp.lastIndex = 0;
+								if (!text || !regExp.test(text)) {
+									return;
+								}
+							}
 
-                                                        await socketProcess(args);
-                                                };
+							await socketProcess(args);
+						};
 
-                                                app.event('message', handleMessageEvent);
-                                        } else if (filter === 'block_actions') {
-                                                app.action(/.*/, async (args: any) => {
-                                                        const { ack } = args;
-                                                        await ack();
-                                                        await socketProcess(args);
-                                                });;
-                                        } else if (filter.startsWith('message.')) {
+						app.event('message', handleMessageEvent);
+					} else if (filter === 'block_actions') {
+						app.action(/.*/, async (args: any) => {
+							const { ack } = args;
+							await ack();
+							await socketProcess(args);
+						});;
+					} else if (filter.startsWith('message.')) {
 						// Handle message subtypes by filtering on channel_type
 						const channelType = filter.replace('message.', '');
 
@@ -851,44 +925,44 @@ export class SlackSocketTrigger implements INodeType {
 
 						const actualChannelType = channelTypeMap[channelType] || channelType;
 
-                                                const handleMessageSubtypeEvent = async (args: any) => {
-                                                        const event = args?.event;
-                                                        if (!event || event.channel_type !== actualChannelType) {
-                                                                return;
-                                                        }
+						const handleMessageSubtypeEvent = async (args: any) => {
+							const event = args?.event;
+							if (!event || event.channel_type !== actualChannelType) {
+								return;
+							}
 
-                                                        if (regExp) {
-                                                                const text = typeof event.text === 'string' ? event.text : '';
-                                                                regExp.lastIndex = 0;
-                                                                if (!text || !regExp.test(text)) {
-                                                                        return;
-                                                                }
-                                                        }
+							if (regExp) {
+								const text = typeof event.text === 'string' ? event.text : '';
+								regExp.lastIndex = 0;
+								if (!text || !regExp.test(text)) {
+									return;
+								}
+							}
 
-                                                        await socketProcess(args);
-                                                };
+							await socketProcess(args);
+						};
 
-                                                app.event('message', handleMessageSubtypeEvent);
-                                        } else if (filter === 'reaction_added' || filter === 'reaction_removed') {
-                                                app.event(filter, async (args: any) => {
-                                                        const reaction = args?.event?.reaction;
-                                                        if (regExp) {
-                                                                const reactionName = typeof reaction === 'string' ? reaction : '';
-                                                                regExp.lastIndex = 0;
-                                                                if (!reactionName || !regExp.test(reactionName)) {
-                                                                        return;
-                                                                }
-                                                        }
+						app.event('message', handleMessageSubtypeEvent);
+					} else if (filter === 'reaction_added' || filter === 'reaction_removed') {
+						app.event(filter, async (args: any) => {
+							const reaction = args?.event?.reaction;
+							if (regExp) {
+								const reactionName = typeof reaction === 'string' ? reaction : '';
+								regExp.lastIndex = 0;
+								if (!reactionName || !regExp.test(reactionName)) {
+									return;
+								}
+							}
 
-                                                        await socketProcess(args);
-                                                });
-                                        } else {
-                                                app.event(filter, socketProcess);
-                                        }
-                                } catch (error) {
-                                        this.logger.error('Error setting up event listener for Slack Socket: ' + filter + ': ' + error);
-                                }
-                        });
+							await socketProcess(args);
+						});
+					} else {
+						app.event(filter, socketProcess);
+					}
+				} catch (error) {
+					this.logger.error('Error setting up event listener for Slack Socket: ' + filter + ': ' + error);
+				}
+			});
 		};
 
 		setupEventListeners();
