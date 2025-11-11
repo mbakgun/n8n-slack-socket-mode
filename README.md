@@ -97,7 +97,9 @@ The Slack Socket Trigger node can be configured with the following options:
   - All Slack events are now supported (app_mention, message, reaction events, channel events, etc.)
   - See the Supported Events section below for a complete list of available events
 
-- **Regex Pattern**: Optional regular expression to match against incoming Slack messages
+- **Regex Pattern**: Optional regular expression to match against the entire event JSON structure (not just message text). This allows matching on any field in the event, such as subtypes, attachment colors, user IDs, etc.
+  - Example: `(?=.*bot_message)(?=.*#FF0000)` matches events that contain both `bot_message` and the color `#FF0000`
+  - Example: `help|assist|support` matches events containing any of these words anywhere in the event data
 - **Regex Flags**: Flags for the regular expression (e.g., `g` for global, `i` for case-insensitive)
 - **Channels to Watch**: Optional list of channels to filter events. Click **Add Channel** to add channels. Each channel can be selected from the dropdown or entered by ID (e.g., `C1234567890`, `G1234567890`)
 - **Legacy Channel to Watch**: Preserved single-channel selector for workflows created before version 1.4.2
@@ -311,6 +313,11 @@ Special thanks to all contributors who help improve this project!
 
 ## Version History
 
+- **1.5.0**: Enhanced regex pattern matching for entire event structure
+  - Changed regex matching to work against the entire event JSON instead of just the text field
+  - Enables matching on any event property including subtypes, attachment colors, metadata, etc.
+  - Supports complex patterns like `(?=.*bot_message)(?=.*#FF0000)` to match multiple conditions
+  - Provides more flexible event filtering for advanced use cases
 - **1.4.2**: Fixed multi-channel selector implementation
   - Each channel entry now properly supports both dropdown selection and manual ID input
   - Maintained backward compatibility with legacy single-channel selector

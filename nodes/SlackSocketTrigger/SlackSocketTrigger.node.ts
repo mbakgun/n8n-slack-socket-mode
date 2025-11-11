@@ -893,9 +893,9 @@ export class SlackSocketTrigger implements INodeType {
 							}
 
 							if (regExp) {
-								const text = typeof event.text === 'string' ? event.text : '';
+								const jsonString = JSON.stringify(event);
 								regExp.lastIndex = 0;
-								if (!text || !regExp.test(text)) {
+								if (!jsonString || !regExp.test(jsonString)) {
 									return;
 								}
 							}
@@ -932,9 +932,9 @@ export class SlackSocketTrigger implements INodeType {
 							}
 
 							if (regExp) {
-								const text = typeof event.text === 'string' ? event.text : '';
+								const jsonString = JSON.stringify(event);
 								regExp.lastIndex = 0;
-								if (!text || !regExp.test(text)) {
+								if (!jsonString || !regExp.test(jsonString)) {
 									return;
 								}
 							}
