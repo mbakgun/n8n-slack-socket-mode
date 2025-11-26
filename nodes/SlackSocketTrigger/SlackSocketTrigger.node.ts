@@ -936,7 +936,6 @@ export class SlackSocketTrigger implements INodeType {
 							try {
 								this.logger.info('view_submission recieved');
 								if (typeof args.ack === 'function') {
-									// acknowledge the view submission so Slack knows we've received it
 									await args.ack();
 								}
 							} catch (err) {
@@ -947,14 +946,12 @@ export class SlackSocketTrigger implements INodeType {
 					} else if (filter === 'view_closed') {
 						// listen to view_closed notifications (modal closed). ack might not be required but call if provided.
 						app.view({type: 'view_closed' }, async (args: any) => {
-							// view_closed payloads arrive to the same app.view handler; filter by body?.type or body?.view?.type if needed
 							try {
 								this.logger.info('view_closed recieved');
 								if (typeof args.ack === 'function') {
 									await args.ack();
 								}
 							} catch (err) {
-								// ack may not be required; swallow ack errors but log
 								this.logger.error('view_closed ack error (safe to ignore): ' + err);
 							}
 
