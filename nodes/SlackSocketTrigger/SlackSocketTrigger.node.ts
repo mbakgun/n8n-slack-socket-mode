@@ -6,7 +6,7 @@ import {
 	INodeTypeDescription,
 	ITriggerFunctions,
 	ITriggerResponse,
-	NodeConnectionType,
+	NodeConnectionTypes,
 	NodeOperationError
 } from 'n8n-workflow';
 import { App } from '@slack/bolt'
@@ -30,7 +30,7 @@ export class SlackSocketTrigger implements INodeType {
 		},
 		icon: 'file:./assets/slack-socket-mode.svg',
 		inputs: [],
-		outputs: [NodeConnectionType.Main],
+		outputs: [NodeConnectionTypes.Main],
 		credentials: [
 			{
 				name: 'slackSocketCredentialsApi',
@@ -932,8 +932,9 @@ export class SlackSocketTrigger implements INodeType {
 						});;
 					} else if (filter === 'view_submission') {
 						// listen to any view submission (callback_id matching all) and ack if possible
-						app.view(/.*/, async (args: any) => {
+						app.view({type: 'view_submission' }, async (args: any) => {
 							try {
+								this.logger.info('view_submission recieved');
 								if (typeof args.ack === 'function') {
 									// acknowledge the view submission so Slack knows we've received it
 									await args.ack();
@@ -945,9 +946,10 @@ export class SlackSocketTrigger implements INodeType {
 						});
 					} else if (filter === 'view_closed') {
 						// listen to view_closed notifications (modal closed). ack might not be required but call if provided.
-						app.view(/.*/, async (args: any) => {
+						app.view({type: 'view_closed' }, async (args: any) => {
 							// view_closed payloads arrive to the same app.view handler; filter by body?.type or body?.view?.type if needed
 							try {
+								this.logger.info('view_closed recieved');
 								if (typeof args.ack === 'function') {
 									await args.ack();
 								}
@@ -955,6 +957,7 @@ export class SlackSocketTrigger implements INodeType {
 								// ack may not be required; swallow ack errors but log
 								this.logger.error('view_closed ack error (safe to ignore): ' + err);
 							}
+
 							await socketProcess(args);
 						});
 					} else if (filter.startsWith('message.')) {
