@@ -6,7 +6,7 @@ import {
 	INodeTypeDescription,
 	ITriggerFunctions,
 	ITriggerResponse,
-	NodeConnectionType,
+	NodeConnectionTypes,
 	NodeOperationError
 } from 'n8n-workflow';
 import { App } from '@slack/bolt'
@@ -30,7 +30,7 @@ export class SlackSocketTrigger implements INodeType {
 		},
 		icon: 'file:./assets/slack-socket-mode.svg',
 		inputs: [],
-		outputs: [NodeConnectionType.Main],
+		outputs: [NodeConnectionTypes.Main],
 		credentials: [
 			{
 				name: 'slackSocketCredentialsApi',
@@ -613,6 +613,16 @@ export class SlackSocketTrigger implements INodeType {
 					description: 'When a channel member is typing a message',
 				},
 				{
+					name: 'View Submitted',
+					value: 'view_submission',
+					description: 'When a modal view is submitted (contains submitted values)',
+				},
+				{
+					name: 'View Closed',
+					value: 'view_closed',
+					description: 'When a modal view is closed (contains view details and private_metadata)',
+				},
+				{
 					name: 'Workflow Deleted',
 					value: 'workflow_deleted',
 					description: 'When a workflow that contains a step supported by your app was deleted',
@@ -866,7 +876,9 @@ export class SlackSocketTrigger implements INodeType {
 
 		const socketProcess = async (root: any) => {
 			try {
-				const { body, payload, context, event } = root;
+				// root can contain many keys depending on the interaction: body, payload, context, event, view, etc.
+				// include all non-function keys so view_submission/view_closed payloads are emitted with their view data
+				const event = root?.event;
 
 				if (uniqueChannelIds.length > 0 && event) {
 					const eventChannelId = getEventChannelId(event);
@@ -875,8 +887,16 @@ export class SlackSocketTrigger implements INodeType {
 					}
 				}
 
-				let result: IDataObject = { body, payload, context, event };
-				this.emit([this.helpers.returnJsonArray(result)]);
+				const sanitized: IDataObject = {};
+				for (const key of Object.keys(root)) {
+					const val = root[key];
+					// do not include functions (ack, respond, etc.) as they are not serializable and not useful in the output
+					if (typeof val !== 'function') {
+						sanitized[key] = val as any;
+					}
+				}
+
+				this.emit([this.helpers.returnJsonArray(sanitized)]);
 			} catch (error) {
 				this.logger.error('Error processing Slack Socket event: ' + error);
 			}
@@ -910,6 +930,33 @@ export class SlackSocketTrigger implements INodeType {
 							await ack();
 							await socketProcess(args);
 						});;
+					} else if (filter === 'view_submission') {
+						// listen to any view submission (callback_id matching all) and ack if possible
+						app.view({type: 'view_submission' }, async (args: any) => {
+							try {
+								this.logger.info('view_submission recieved');
+								if (typeof args.ack === 'function') {
+									await args.ack();
+								}
+							} catch (err) {
+								this.logger.error('Error acknowledging view_submission: ' + err);
+							}
+							await socketProcess(args);
+						});
+					} else if (filter === 'view_closed') {
+						// listen to view_closed notifications (modal closed). ack might not be required but call if provided.
+						app.view({type: 'view_closed' }, async (args: any) => {
+							try {
+								this.logger.info('view_closed recieved');
+								if (typeof args.ack === 'function') {
+									await args.ack();
+								}
+							} catch (err) {
+								this.logger.error('view_closed ack error (safe to ignore): ' + err);
+							}
+
+							await socketProcess(args);
+						});
 					} else if (filter.startsWith('message.')) {
 						// Handle message subtypes by filtering on channel_type
 						const channelType = filter.replace('message.', '');

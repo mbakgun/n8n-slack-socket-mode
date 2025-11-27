@@ -241,6 +241,8 @@ The node currently supports the following Slack events:
 - `user_resource_granted`: User resource was granted to your app
 - `user_resource_removed`: User resource was removed from your app
 - `user_typing`: A channel member is typing a message
+- `view_submission`: When a modal view is submitted 
+- `view_closed`: When a modal view is closed
 - `workflow_deleted`: A workflow that contains a step supported by your app was deleted
 - `workflow_published`: A workflow that contains a step supported by your app was published
 - `workflow_step_deleted`: A workflow step supported by your app was removed from a workflow
