@@ -315,6 +315,10 @@ Special thanks to all contributors who help improve this project!
 
 ## Version History
 
+- **1.5.1**: Added modal view event support by **[@unbalanced](https://github.com/unbalanced)**
+  - Added `view_submission` event listener for handling modal form submissions
+  - Added `view_closed` event listener for detecting when modals are dismissed
+  - Enables building interactive Slack workflows with modal forms in n8n
 - **1.5.0**: Enhanced regex pattern matching for entire event structure
   - Changed regex matching to work against the entire event JSON instead of just the text field
   - Enables matching on any event property including subtypes, attachment colors, metadata, etc.
