@@ -931,10 +931,9 @@ export class SlackSocketTrigger implements INodeType {
 							await socketProcess(args);
 						});;
 					} else if (filter === 'view_submission') {
-						// listen to any view submission (callback_id matching all) and ack if possible
-						app.view({type: 'view_submission' }, async (args: any) => {
+						app.view({ type: 'view_submission' }, async (args: any) => {
 							try {
-								this.logger.info('view_submission recieved');
+								this.logger.info('view_submission received');
 								if (typeof args.ack === 'function') {
 									await args.ack();
 								}
@@ -944,17 +943,15 @@ export class SlackSocketTrigger implements INodeType {
 							await socketProcess(args);
 						});
 					} else if (filter === 'view_closed') {
-						// listen to view_closed notifications (modal closed). ack might not be required but call if provided.
-						app.view({type: 'view_closed' }, async (args: any) => {
+						app.view({ type: 'view_closed' }, async (args: any) => {
 							try {
-								this.logger.info('view_closed recieved');
+								this.logger.info('view_closed received');
 								if (typeof args.ack === 'function') {
 									await args.ack();
 								}
 							} catch (err) {
 								this.logger.error('view_closed ack error (safe to ignore): ' + err);
 							}
-
 							await socketProcess(args);
 						});
 					} else if (filter.startsWith('message.')) {
