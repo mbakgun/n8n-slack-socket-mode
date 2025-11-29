@@ -297,6 +297,10 @@ This workflow allows you to create a Slack bot that responds to mentions with da
 - [Slack Events API Documentation](https://api.slack.com/events)
 - [Bun Documentation](https://bun.sh/docs)
 
+### Workflow Building Tools
+
+- [n8n Builder](https://n8nbuilder.dev/) - AI-powered workflow generator. Great for quickly prototyping Socket Mode workflows with natural language.
+
 ## Contributors
 
 We appreciate all contributions to this project! 🎉
@@ -315,6 +319,10 @@ Special thanks to all contributors who help improve this project!
 
 ## Version History
 
+- **1.6.0**: Upgraded @slack/bolt to v4.6.0
+  - Fixed dependency resolution issues that caused `ENOENT` errors during installation
+  - Resolved nested dependency conflicts with `@slack/logger` and other Slack packages
+  - If you experienced installation errors, please upgrade to 1.6.0
 - **1.5.1**: Added modal view event support by **[@unbalanced](https://github.com/unbalanced)**
   - Added `view_submission` event listener for handling modal form submissions
   - Added `view_closed` event listener for detecting when modals are dismissed

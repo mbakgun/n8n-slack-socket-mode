@@ -613,14 +613,14 @@ export class SlackSocketTrigger implements INodeType {
 					description: 'When a channel member is typing a message',
 				},
 				{
-					name: 'View Submitted',
-					value: 'view_submission',
-					description: 'When a modal view is submitted (contains submitted values)',
-				},
-				{
 					name: 'View Closed',
 					value: 'view_closed',
 					description: 'When a modal view is closed (contains view details and private_metadata)',
+				},
+				{
+					name: 'View Submitted',
+					value: 'view_submission',
+					description: 'When a modal view is submitted (contains submitted values)',
 				},
 				{
 					name: 'Workflow Deleted',
