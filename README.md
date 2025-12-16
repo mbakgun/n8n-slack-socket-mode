@@ -71,6 +71,7 @@ Before using this node, you need to create a Slack app with Socket Mode enabled:
    - `channels:history`
    - `channels:read`
    - `chat:write`
+   - `commands`
    - `reactions:read`
    - `team:read`
    - (Add any other scopes required for your use case)
@@ -101,6 +102,7 @@ The Slack Socket Trigger node can be configured with the following options:
   - Example: `(?=.*bot_message)(?=.*#FF0000)` matches events that contain both `bot_message` and the color `#FF0000`
   - Example: `help|assist|support` matches events containing any of these words anywhere in the event data
 - **Regex Flags**: Flags for the regular expression (e.g., `g` for global, `i` for case-insensitive)
+- **Slash Commands**: Comma-separated list of slash commands to listen for (e.g., `deploy, status, help`). Leave empty to listen for all slash commands. Do not include the leading slash.
 - **Channels to Watch**: Optional list of channels to filter events. Click **Add Channel** to add channels. Each channel can be selected from the dropdown or entered by ID (e.g., `C1234567890`, `G1234567890`)
 - **Legacy Channel to Watch**: Preserved single-channel selector for workflows created before version 1.4.2
 
@@ -248,6 +250,7 @@ The node currently supports the following Slack events:
 - `workflow_step_deleted`: A workflow step supported by your app was removed from a workflow
 - `workflow_step_execute`: A workflow step supported by your app should execute
 - `workflow_unpublished`: A workflow that contains a step supported by your app was unpublished
+- `slash_command`: When a user invokes a slash command
 
 ## Usage Examples
 

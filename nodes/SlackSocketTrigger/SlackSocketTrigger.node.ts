@@ -673,12 +673,12 @@ export class SlackSocketTrigger implements INodeType {
 					'Flags for the regular expression (e.g., g for global, i for case-insensitive)',
 			},
 			{
-				displayName: 'Slash Command',
+				displayName: 'Slash Commands',
 				name: 'slashCommand',
 				type: 'string',
 				default: '',
-				placeholder: 'my_command',
-				description: 'The slash command to listen for (e.g., /deploy). Leave empty to listen for all slash commands. Do not include the leading slash.',
+				placeholder: 'deploy, status, help',
+				description: 'Comma-separated list of slash commands to listen for (e.g., deploy, status, help). Leave empty to listen for all slash commands. Do not include the leading slash.',
 				displayOptions: {
 					show: {
 						trigger: ['slash_command'],
@@ -993,13 +993,17 @@ export class SlackSocketTrigger implements INodeType {
 							await socketProcess(args);
 						};
 
-						const normalizedCommand = slashCommand.startsWith('/') 
-							? slashCommand.slice(1) 
-							: slashCommand;
+						const commands = slashCommand
+							.split(',')
+							.map((cmd: string) => cmd.trim())
+							.filter((cmd: string) => cmd.length > 0)
+							.map((cmd: string) => cmd.startsWith('/') ? cmd.slice(1) : cmd);
 
-						if (normalizedCommand && normalizedCommand.length > 0) {
-							app.command(`/${normalizedCommand}`, commandHandler);
-							this.logger.info(`Listening for slash command: /${normalizedCommand}`);
+						if (commands.length > 0) {
+							for (const cmd of commands) {
+								app.command(`/${cmd}`, commandHandler);
+								this.logger.info(`Listening for slash command: /${cmd}`);
+							}
 						} else {
 							app.command(/.*/, commandHandler);
 							this.logger.info('Listening for all slash commands');
