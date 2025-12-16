@@ -322,6 +322,10 @@ Special thanks to all contributors who help improve this project!
 
 ## Version History
 
+- **1.6.1**: Added slash command trigger support by **[@ydogukan-yd](https://github.com/ydogukan-yd)**
+  - Added `slash_command` event listener for handling slash commands
+  - Added configurable slash commands field to filter specific commands
+  - Enables building interactive Slack workflows with custom slash commands in n8n
 - **1.6.0**: Upgraded @slack/bolt to v4.6.0
   - Fixed dependency resolution issues that caused `ENOENT` errors during installation
   - Resolved nested dependency conflicts with `@slack/logger` and other Slack packages
