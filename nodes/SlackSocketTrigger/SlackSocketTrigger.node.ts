@@ -108,6 +108,11 @@ export class SlackSocketTrigger implements INodeType {
 					description: 'When a user interacts with buttons, including NPS-style ratings',
 				},
 				{
+					name: 'Slash Command',
+					value: 'slash_command',
+					description: 'When a user invokes a slash command (e.g., /mycommand)',
+				},
+				{
 					name: 'Call Rejected',
 					value: 'call_rejected',
 					description: 'When a call was rejected',
@@ -668,6 +673,19 @@ export class SlackSocketTrigger implements INodeType {
 					'Flags for the regular expression (e.g., g for global, i for case-insensitive)',
 			},
 			{
+				displayName: 'Slash Command',
+				name: 'slashCommand',
+				type: 'string',
+				default: '',
+				placeholder: 'my_command',
+				description: 'The slash command to listen for (e.g., /deploy). Leave empty to listen for all slash commands. Do not include the leading slash.',
+				displayOptions: {
+					show: {
+						trigger: ['slash_command'],
+					},
+				},
+			},
+			{
 				displayName: 'Channels to Watch',
 				name: 'channelsToWatch',
 				type: 'fixedCollection',
@@ -807,6 +825,7 @@ export class SlackSocketTrigger implements INodeType {
 		const filters = this.getNodeParameter('trigger', []) as string[];
 		const pattern = this.getNodeParameter('regexPattern') as string;
 		const flags = this.getNodeParameter('regexFlags') as string;
+		const slashCommand = this.getNodeParameter('slashCommand', '') as string;
 		const channelsToWatch = this.getNodeParameter('channelsToWatch', {}) as {
 			channelValues?: Array<{ channel?: { mode?: string; value?: string } }>;
 		};
@@ -954,6 +973,37 @@ export class SlackSocketTrigger implements INodeType {
 							}
 							await socketProcess(args);
 						});
+					} else if (filter === 'slash_command') {
+						const commandHandler = async (args: any) => {
+							const { ack, command } = args;
+							try {
+								await ack();
+							} catch (err) {
+								this.logger.error('Error acknowledging slash command: ' + err);
+							}
+
+							if (regExp && command) {
+								const commandText = command.text || '';
+								regExp.lastIndex = 0;
+								if (!regExp.test(commandText)) {
+									return;
+								}
+							}
+
+							await socketProcess(args);
+						};
+
+						const normalizedCommand = slashCommand.startsWith('/') 
+							? slashCommand.slice(1) 
+							: slashCommand;
+
+						if (normalizedCommand && normalizedCommand.length > 0) {
+							app.command(`/${normalizedCommand}`, commandHandler);
+							this.logger.info(`Listening for slash command: /${normalizedCommand}`);
+						} else {
+							app.command(/.*/, commandHandler);
+							this.logger.info('Listening for all slash commands');
+						}
 					} else if (filter.startsWith('message.')) {
 						// Handle message subtypes by filtering on channel_type
 						const channelType = filter.replace('message.', '');
