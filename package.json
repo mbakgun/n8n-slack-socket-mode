@@ -23,7 +23,8 @@
   },
   "license": "MIT",
   "author": {
-    "name": "Mehmet Burak Akgün"
+    "name": "Mehmet Burak Akgün",
+    "email": "burak@mbakgun.com"
   },
   "type": "commonjs",
   "main": "dist/index.js",
