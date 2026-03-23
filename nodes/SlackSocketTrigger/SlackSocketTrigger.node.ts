@@ -873,6 +873,8 @@ export class SlackSocketTrigger implements INodeType {
 			clientOptions: { agent },
 		});
 
+		let isStopped = false;
+
 		const getEventChannelId = (event: any): string | null => {
 			if (!event) return null;
 
@@ -896,9 +898,8 @@ export class SlackSocketTrigger implements INodeType {
 		};
 
 		const socketProcess = async (root: any) => {
+			if (isStopped) return;
 			try {
-				// root can contain many keys depending on the interaction: body, payload, context, event, view, etc.
-				// include all non-function keys so view_submission/view_closed payloads are emitted with their view data
 				const event = root?.event;
 
 				if (uniqueChannelIds.length > 0 && event) {
@@ -911,13 +912,14 @@ export class SlackSocketTrigger implements INodeType {
 				const sanitized: IDataObject = {};
 				for (const key of Object.keys(root)) {
 					const val = root[key];
-					// do not include functions (ack, respond, etc.) as they are not serializable and not useful in the output
 					if (typeof val !== 'function') {
 						sanitized[key] = val as any;
 					}
 				}
 
-				this.emit([this.helpers.returnJsonArray(sanitized)]);
+				if (!isStopped) {
+					this.emit([this.helpers.returnJsonArray(sanitized)]);
+				}
 			} catch (error) {
 				this.logger.error('Error processing Slack Socket event: ' + error);
 			}
@@ -928,6 +930,7 @@ export class SlackSocketTrigger implements INodeType {
 				try {
 					if (filter === 'message') {
 						const handleMessageEvent = async (args: any) => {
+							if (isStopped) return;
 							const event = args?.event;
 							if (!event) {
 								return;
@@ -949,8 +952,9 @@ export class SlackSocketTrigger implements INodeType {
 						app.action(/.*/, async (args: any) => {
 							const { ack } = args;
 							await ack();
+							if (isStopped) return;
 							await socketProcess(args);
-						});;
+						});
 					} else if (filter === 'view_submission') {
 						app.view({ type: 'view_submission' }, async (args: any) => {
 							try {
@@ -961,6 +965,7 @@ export class SlackSocketTrigger implements INodeType {
 							} catch (err) {
 								this.logger.error('Error acknowledging view_submission: ' + err);
 							}
+							if (isStopped) return;
 							await socketProcess(args);
 						});
 					} else if (filter === 'view_closed') {
@@ -973,6 +978,7 @@ export class SlackSocketTrigger implements INodeType {
 							} catch (err) {
 								this.logger.error('view_closed ack error (safe to ignore): ' + err);
 							}
+							if (isStopped) return;
 							await socketProcess(args);
 						});
 					} else if (filter === 'slash_command') {
@@ -983,6 +989,7 @@ export class SlackSocketTrigger implements INodeType {
 							} catch (err) {
 								this.logger.error('Error acknowledging slash command: ' + err);
 							}
+							if (isStopped) return;
 
 							if (regExp && command) {
 								const commandText = command.text || '';
@@ -1011,10 +1018,8 @@ export class SlackSocketTrigger implements INodeType {
 							this.logger.info('Listening for all slash commands');
 						}
 					} else if (filter.startsWith('message.')) {
-						// Handle message subtypes by filtering on channel_type
 						const channelType = filter.replace('message.', '');
 
-						// Map the filter names to actual channel_type values
 						const channelTypeMap: { [key: string]: string } = {
 							'channels': 'channel',
 							'groups': 'group',
@@ -1026,6 +1031,7 @@ export class SlackSocketTrigger implements INodeType {
 						const actualChannelType = channelTypeMap[channelType] || channelType;
 
 						const handleMessageSubtypeEvent = async (args: any) => {
+							if (isStopped) return;
 							const event = args?.event;
 							if (!event || event.channel_type !== actualChannelType) {
 								return;
@@ -1045,6 +1051,7 @@ export class SlackSocketTrigger implements INodeType {
 						app.event('message', handleMessageSubtypeEvent);
 					} else if (filter === 'reaction_added' || filter === 'reaction_removed') {
 						app.event(filter, async (args: any) => {
+							if (isStopped) return;
 							const reaction = args?.event?.reaction;
 							if (regExp) {
 								const reactionName = typeof reaction === 'string' ? reaction : '';
@@ -1057,7 +1064,10 @@ export class SlackSocketTrigger implements INodeType {
 							await socketProcess(args);
 						});
 					} else {
-						app.event(filter, socketProcess);
+						app.event(filter, async (args: any) => {
+							if (isStopped) return;
+							await socketProcess(args);
+						});
 					}
 				} catch (error) {
 					this.logger.error('Error setting up event listener for Slack Socket: ' + filter + ': ' + error);
@@ -1075,10 +1085,6 @@ export class SlackSocketTrigger implements INodeType {
 				this.logger.error('Error starting Slack Socket app in test mode: ' + error);
 				throw error;
 			}
-
-			return new Promise<void>((resolve) => {
-				resolve();
-			});
 		};
 
 		if (this.getMode() === 'trigger') {
@@ -1092,11 +1098,17 @@ export class SlackSocketTrigger implements INodeType {
 		}
 
 		const closeFunction = async () => {
+			isStopped = true;
 			try {
 				await app.stop();
 				this.logger.info('Stopped Slack Socket app');
 			} catch (error) {
 				this.logger.error('Error stopping Slack Socket app: ' + error);
+				try {
+					await app.stop();
+				} catch {
+					this.logger.error('Retry app.stop() also failed, socket may be orphaned');
+				}
 			}
 		};
 
