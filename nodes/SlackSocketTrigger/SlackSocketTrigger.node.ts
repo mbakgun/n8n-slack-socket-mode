@@ -9,7 +9,8 @@ import {
 	NodeConnectionTypes,
 	NodeOperationError
 } from 'n8n-workflow';
-import { App } from '@slack/bolt'
+import { App, SocketModeReceiver } from '@slack/bolt'
+import { SocketModeClient } from '@slack/socket-mode'
 import { HttpsProxyAgent } from 'https-proxy-agent'
 
 interface SlackCredential {
@@ -865,12 +866,22 @@ export class SlackSocketTrigger implements INodeType {
 		}
 		const proxyUrl = process.env.HTTP_PROXY || process.env.HTTPS_PROXY;
 		const agent = proxyUrl ? new HttpsProxyAgent(proxyUrl) : undefined;
+
+		const socketModeReceiver = new SocketModeReceiver({
+			appToken: credentials.appToken,
+		});
+
+		socketModeReceiver.client = new SocketModeClient({
+			appToken: credentials.appToken,
+			clientPingTimeout: 20000,
+			serverPingTimeout: 60000,
+			clientOptions: { agent },
+		});
+
 		const app = new App({
 			token: credentials.botToken,
 			signingSecret: credentials.signingSecret,
-			appToken: credentials.appToken,
-			socketMode: true,
-			clientOptions: { agent },
+			receiver: socketModeReceiver,
 		});
 
 		const getEventChannelId = (event: any): string | null => {
