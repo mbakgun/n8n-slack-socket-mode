@@ -871,7 +871,6 @@ export class SlackSocketTrigger implements INodeType {
 			appToken: credentials.appToken,
 		});
 
-		// eslint-disable-next-line @typescript-eslint/no-explicit-any
 		socketModeReceiver.client = new SocketModeClient({
 			appToken: credentials.appToken,
 			clientPingTimeout: 20000,
@@ -1118,5 +1117,3 @@ export class SlackSocketTrigger implements INodeType {
 		};
 	}
 }
-
-
