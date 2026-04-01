@@ -67,6 +67,7 @@
   },
   "dependencies": {
     "@slack/bolt": "^4.6.0",
+    "@slack/socket-mode": "^2.0.5",
     "http-proxy-agent": "^7.0.2",
     "https-proxy-agent": "^7.0.6"
   }
