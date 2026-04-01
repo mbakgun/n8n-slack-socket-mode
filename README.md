@@ -322,6 +322,7 @@ Special thanks to all contributors who help improve this project!
 
 ## Version History
 
+- **1.6.5**: Reverted trigger lifecycle guard changes from [PR #10](https://github.com/mbakgun/n8n-slack-socket-mode/pull/10)
 - **1.6.3**: Socket Mode reliability by **[@ziyaozclk](https://github.com/ziyaozclk)** and trigger lifecycle by **[@Ilexpwh](https://github.com/Ilexpwh)**
   - Increased Socket Mode client/server ping timeouts via `SocketModeReceiver` to reduce false disconnects when Slack recycles backends ([PR #11](https://github.com/mbakgun/n8n-slack-socket-mode/pull/11))
   - Guarded the socket trigger with an `isStopped` flag and handler checks so events do not emit after workflow deactivate/save; mitigates stale workflow runs ([PR #10](https://github.com/mbakgun/n8n-slack-socket-mode/pull/10))
