@@ -1031,7 +1031,7 @@ export class SlackSocketTrigger implements INodeType {
 							'groups': 'group',
 							'im': 'im',
 							'mpim': 'mpim',
-							'app_home': 'app_home'
+							'app_home': 'im' // Slack sends channel_type: "im" for App Home DMs, not "app_home"
 						};
 
 						const actualChannelType = channelTypeMap[channelType] || channelType;
