@@ -10,7 +10,6 @@ import {
 	NodeOperationError
 } from 'n8n-workflow';
 import { App, SocketModeReceiver } from '@slack/bolt'
-import { SocketModeClient } from '@slack/socket-mode'
 import { HttpsProxyAgent } from 'https-proxy-agent'
 
 interface SlackCredential {
@@ -869,14 +868,16 @@ export class SlackSocketTrigger implements INodeType {
 
 		const socketModeReceiver = new SocketModeReceiver({
 			appToken: credentials.appToken,
+			installerOptions: {
+				clientOptions: { agent },
+			},
 		});
 
-		socketModeReceiver.client = new SocketModeClient({
-			appToken: credentials.appToken,
-			clientPingTimeout: 20000,
-			serverPingTimeout: 60000,
-			clientOptions: { agent },
-		}) as any;
+		// SocketModeReceiver doesn't expose clientPingTimeout/serverPingTimeout in its
+		// constructor options, so patch them onto the client it created internally.
+		(socketModeReceiver.client as any).clientPingTimeoutMS = 20000;
+		(socketModeReceiver.client as any).serverPingTimeoutMS = 60000;
+
 
 		const app = new App({
 			token: credentials.botToken,
