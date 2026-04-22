@@ -10,7 +10,6 @@ import {
 	NodeOperationError
 } from 'n8n-workflow';
 import { App, SocketModeReceiver } from '@slack/bolt'
-import { SocketModeClient } from '@slack/socket-mode'
 import { HttpsProxyAgent } from 'https-proxy-agent'
 
 interface SlackCredential {
@@ -869,14 +868,15 @@ export class SlackSocketTrigger implements INodeType {
 
 		const socketModeReceiver = new SocketModeReceiver({
 			appToken: credentials.appToken,
+			installerOptions: {
+				clientOptions: { agent },
+			},
 		});
 
-		socketModeReceiver.client = new SocketModeClient({
-			appToken: credentials.appToken,
-			clientPingTimeout: 20000,
-			serverPingTimeout: 60000,
-			clientOptions: { agent },
-		}) as any;
+		// SocketModeReceiver doesn't expose clientPingTimeout/serverPingTimeout in its
+		// constructor options, so patch them onto the client it created internally.
+		(socketModeReceiver.client as any).clientPingTimeoutMS = 20000;
+		(socketModeReceiver.client as any).serverPingTimeoutMS = 60000;
 
 		const app = new App({
 			token: credentials.botToken,
@@ -906,7 +906,13 @@ export class SlackSocketTrigger implements INodeType {
 			return null;
 		};
 
+		let isStopped = false;
+
 		const socketProcess = async (root: any) => {
+			if (isStopped) {
+				return;
+			}
+
 			try {
 				// root can contain many keys depending on the interaction: body, payload, context, event, view, etc.
 				// include all non-function keys so view_submission/view_closed payloads are emitted with their view data
@@ -1026,19 +1032,21 @@ export class SlackSocketTrigger implements INodeType {
 						const channelType = filter.replace('message.', '');
 
 						// Map the filter names to actual channel_type values
-						const channelTypeMap: { [key: string]: string } = {
-							'channels': 'channel',
-							'groups': 'group',
-							'im': 'im',
-							'mpim': 'mpim',
-							'app_home': 'app_home'
+						// app_home accepts both 'app_home' (user-subscribed events) and 'im'
+						// (bot events - Slack sends channel_type: "im" for App Home DMs via bot events)
+						const channelTypeMap: { [key: string]: string[] } = {
+							'channels': ['channel'],
+							'groups': ['group'],
+							'im': ['im'],
+							'mpim': ['mpim'],
+							'app_home': ['app_home', 'im'],
 						};
 
-						const actualChannelType = channelTypeMap[channelType] || channelType;
+						const actualChannelTypes = channelTypeMap[channelType] || [channelType];
 
 						const handleMessageSubtypeEvent = async (args: any) => {
 							const event = args?.event;
-							if (!event || event.channel_type !== actualChannelType) {
+							if (!event || !actualChannelTypes.includes(event.channel_type)) {
 								return;
 							}
 
@@ -1103,6 +1111,7 @@ export class SlackSocketTrigger implements INodeType {
 		}
 
 		const closeFunction = async () => {
+			isStopped = true;
 			try {
 				await app.stop();
 				this.logger.info('Stopped Slack Socket app');
