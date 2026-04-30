@@ -70,5 +70,11 @@
     "@slack/socket-mode": "^2.0.5",
     "http-proxy-agent": "^7.0.2",
     "https-proxy-agent": "^7.0.6"
-  }
+  },
+  "bundleDependencies": [
+    "@slack/bolt",
+    "@slack/socket-mode",
+    "http-proxy-agent",
+    "https-proxy-agent"
+  ]
 }
