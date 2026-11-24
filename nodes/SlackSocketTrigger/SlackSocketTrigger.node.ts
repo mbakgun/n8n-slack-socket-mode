@@ -907,6 +907,9 @@ export class SlackSocketTrigger implements INodeType {
 		};
 
 		let isStopped = false;
+		const isManual = this.getMode() === 'manual';
+		let manualResultReceived = false;
+		let manualDeadline: ReturnType<typeof setTimeout> | undefined;
 
 		const socketProcess = async (root: any) => {
 			if (isStopped) {
@@ -934,7 +937,13 @@ export class SlackSocketTrigger implements INodeType {
 					}
 				}
 
-				this.emit([this.helpers.returnJsonArray(sanitized)]);
+				const items = this.helpers.returnJsonArray(sanitized);
+				if (isManual) {
+					if (manualResultReceived) return;
+					manualResultReceived = true;
+					clearTimeout(manualDeadline);
+				}
+				this.emit([items]);
 			} catch (error) {
 				this.logger.error('Error processing Slack Socket event: ' + error);
 			}
@@ -1086,20 +1095,6 @@ export class SlackSocketTrigger implements INodeType {
 
 		setupEventListeners();
 
-		const manualTriggerFunction = async () => {
-			try {
-				await app.start();
-				this.logger.info('Started Slack Socket app in test mode');
-			} catch (error) {
-				this.logger.error('Error starting Slack Socket app in test mode: ' + error);
-				throw error;
-			}
-
-			return new Promise<void>((resolve) => {
-				resolve();
-			});
-		};
-
 		if (this.getMode() === 'trigger') {
 			try {
 				await app.start();
@@ -1110,8 +1105,7 @@ export class SlackSocketTrigger implements INodeType {
 			}
 		}
 
-		const closeFunction = async () => {
-			isStopped = true;
+		const stopSocket = async () => {
 			try {
 				await app.stop();
 				this.logger.info('Stopped Slack Socket app');
@@ -1120,8 +1114,39 @@ export class SlackSocketTrigger implements INodeType {
 			}
 		};
 
+		let closing: Promise<void> | undefined;
+		const finish = (error?: Error) => {
+			if (closing) return closing;
+			isStopped = true;
+			clearTimeout(manualDeadline);
+			const settleManualWait = isManual && !manualResultReceived;
+			manualResultReceived = true;
+			closing = stopSocket().then(() => {
+				if (!settleManualWait) return;
+				if (error) this.emitError(error);
+				else this.emit([]);
+			});
+			return closing;
+		};
+
+		const manualTriggerFunction = async () => {
+			manualDeadline = setTimeout(() => {
+				void finish(new NodeOperationError(this.getNode(), 'No matching Slack event received within 60 seconds'));
+			}, 60_000);
+			void app.start().then(async () => {
+				if (isStopped) {
+					await stopSocket();
+					return;
+				}
+				this.logger.info('Started Slack Socket app in test mode');
+			}, (error: unknown) => {
+				this.logger.error('Error starting Slack Socket app in test mode: ' + error);
+				void finish(new NodeOperationError(this.getNode(), 'Failed to start the Slack test listener'));
+			});
+		};
+
 		return {
-			closeFunction,
+			closeFunction: () => finish(),
 			manualTriggerFunction
 		};
 	}
